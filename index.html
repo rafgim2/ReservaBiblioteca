@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RESERVA DE PORTÁTILES</title>
+  <title>RESERVA DE BIBLIOTECA</title>
   <style>
     :root {
       --col-date-width: 110px;
@@ -25,7 +25,7 @@
     }
 
     header {
-      background: #1f4e79;
+      background: #fbc02d; /* Amarillo biblioteca */
       color: white;
       padding: 16px 24px 10px;
       text-align: center;
@@ -128,7 +128,7 @@
       text-align: center;
       white-space: normal;
       word-break: break-word;
-      background: #ffffff; /* Todo libre en blanco por defecto */
+      background: #ffffff; /* Libre en blanco por defecto */
     }
 
     thead th:nth-child(1),
@@ -200,7 +200,7 @@
       font-weight: 700;
     }
 
-    /* Reservas fijas del horario (no clicables) */
+    /* Reservas fijas por clase (no clicables) */
     td.fixed-reserved {
       background: #b71c1c !important;
       color: #ffffff;
@@ -208,7 +208,18 @@
       cursor: default;
     }
 
-    td.reservable::before {
+    /* Franja bloqueada globalmente (Préstamos / No disponible) */
+    td.global-blocked {
+      background: #ffebee !important;
+      color: #b71c1c;
+      font-weight: 600;
+      cursor: default;
+      position: relative;
+      overflow: hidden;
+    }
+
+    td.reservable::before,
+    td.global-blocked::before {
       content: attr(data-class);
       position: absolute;
       top: 50%;
@@ -243,7 +254,7 @@
   <!-- Barra superior fija -->
   <div class="top-bar">
     <header>
-      <h1>RESERVA DE PORTÁTILES</h1>
+      <h1>RESERVA DE BIBLIOTECA</h1>
     </header>
 
     <div class="controls">
@@ -363,19 +374,39 @@
       return defaultSlots;
     }
 
-    /* === RESERVAS FIJAS SEGÚN LA FOTO DEL HORARIO ===
+    /* === RESERVAS FIJAS BIBLIOTECA (por clase) ===
+       jueves:  2ª 4ºA, 6ª Infantil 5 años
+       viernes: 2ª 4ºB, 6ª 6ºA
        weekday: 1=Lunes ... 5=Viernes
        session: 1=1ª, 2=2ª,... 6=6ª
     */
     const FIXED_WEEKLY_RESERVATIONS = [
-      { weekday: 5, session: 1, className: "3ºA" }, // 1ª Viernes 3A
-      { weekday: 4, session: 4, className: "5ºA" }, // 4ª Jueves 5A
-      { weekday: 5, session: 4, className: "1ºA" }, // 4ª Viernes 1A
-      { weekday: 4, session: 5, className: "4ºA" }, // 5ª Jueves 4A
-      { weekday: 3, session: 6, className: "6ºB" }, // 6ª Miércoles 6B
-      { weekday: 4, session: 6, className: "6ºA" }, // 6ª Jueves 6A
-      { weekday: 5, session: 6, className: "5ºB" }  // 6ª Viernes 5B
+      { weekday: 4, session: 2, className: "4ºA" },
+      { weekday: 4, session: 6, className: "Infantil 5 años" },
+      { weekday: 5, session: 2, className: "4ºB" },
+      { weekday: 5, session: 6, className: "6ºA" }
     ];
+
+    // Franjas bloqueadas globalmente (martes 2ª, 3ª, 6ª)
+    // Devuelve null si no está bloqueada, o el texto ("Préstamos"/"No disponible")
+    function getGlobalBlockedLabel(dateIso, slot) {
+      const d = new Date(dateIso);
+      const weekday = d.getDay(); // 0 Dom, 1 Lun,... 6 Sab
+      if (weekday !== 2) return null; // Solo martes
+
+      const slotsForMonth = getSlotsForMonth(currentMonthIndex);
+      const idx = slotsForMonth.indexOf(slot);
+      if (idx === -1) return null;
+      const session = idx + 1;
+
+      if (session === 2 || session === 6) {
+        return "Préstamos";
+      }
+      if (session === 3) {
+        return "No disponible";
+      }
+      return null;
+    }
 
     function isFixedReservation(dateIso, slot, className) {
       const d = new Date(dateIso);
@@ -392,11 +423,21 @@
       );
     }
 
-    // Devuelve si una franja (fecha+slot) está ocupada por una reserva fija, aunque sea otra clase
+    // Devuelve si una franja (fecha+slot) está ocupada por una reserva fija global, aunque sea otra clase
     function getFixedReservationForSlot(dateIso, slot) {
       const d = new Date(dateIso);
       const weekday = d.getDay();
       if (weekday < 1 || weekday > 5) return null;
+
+      // Primero, si es franja bloqueada global (Préstamos / No disponible)
+      const globalLabel = getGlobalBlockedLabel(dateIso, slot);
+      if (globalLabel) {
+        return {
+          id: null,
+          className: globalLabel,
+          value: "global-blocked"
+        };
+      }
 
       const slotsForMonth = getSlotsForMonth(currentMonthIndex);
       const idx = slotsForMonth.indexOf(slot);
@@ -424,7 +465,8 @@
     function monthDocRef(monthIndex) {
       const { year, month } = months[monthIndex];
       const id = `${year}-${String(month).padStart(2, "0")}`;
-      return doc(db, "reservas_portatiles_celdas", id);
+      // Colección específica para la biblioteca
+      return doc(db, "reservas_biblioteca_celdas", id);
     }
 
     function buildReservationId(dateIso, slot, className) {
@@ -462,7 +504,8 @@
     // ➜ CONTROL POR USUARIO:
     // Máx. 1 reserva POR SEMANA (semana ISO) en las últimas 24h
     // Se guardan en localStorage por semana: { "2025-W45": { fullId, time }, ... }
-    const LOCAL_USER_RES_KEY = "reservas_portatiles_mis_reservas_por_semana";
+    // Usamos otra clave distinta para NO mezclar con la de portátiles / informática.
+    const LOCAL_USER_RES_KEY = "reservas_biblioteca_mis_reservas_por_semana";
 
     // Calcula la semana ISO (año-semana) a partir de una fecha YYYY-MM-DD
     function getWeekKeyFromIso(dateIso) {
@@ -594,7 +637,7 @@
         return {
           id: null,
           className: fixed.className,
-          value: "fixed"
+          value: fixed.value || "fixed"
         };
       }
 
@@ -683,33 +726,44 @@
           tdSlot.textContent = slot;
           tr.appendChild(tdSlot);
 
-          // Para saber si esta franja (fila) tiene alguna reserva
+          // Para saber si esta franja (fila) tiene alguna reserva/bloqueo
           let rowHasReservation = false;
+
+          // ¿Es franja bloqueada globalmente (martes 2ª, 3ª, 6ª)?
+          const globalLabel = getGlobalBlockedLabel(day.iso, slot);
 
           classes.forEach(cls => {
             const td = document.createElement("td");
-            td.classList.add("reservable");
-            td.dataset.date = day.iso;
-            td.dataset.slot = slot;
-            td.dataset.class = cls; // usado para la marca de agua
 
-            const id = buildReservationId(day.iso, slot, cls);
-            const isFixed = isFixedReservation(day.iso, slot, cls);
+            if (globalLabel) {
+              // Franja bloqueada completa: no reservable, rojo clarito, texto genérico
+              td.classList.add("global-blocked");
+              td.dataset.class = globalLabel;
+              rowHasReservation = true;
+            } else {
+              td.classList.add("reservable");
+              td.dataset.date = day.iso;
+              td.dataset.slot = slot;
+              td.dataset.class = cls; // usado para la marca de agua
 
-            if (isFixed) {
-              // reserva fija del horario → siempre ocupada y no clicable
-              td.classList.add("fixed-reserved");
-              td.dataset.fixed = "true";
-              rowHasReservation = true;
-            } else if (saved[id]) {
-              td.classList.add("reserved");
-              rowHasReservation = true;
+              const id = buildReservationId(day.iso, slot, cls);
+              const isFixed = isFixedReservation(day.iso, slot, cls);
+
+              if (isFixed) {
+                // reserva fija del horario → siempre ocupada y no clicable
+                td.classList.add("fixed-reserved");
+                td.dataset.fixed = "true";
+                rowHasReservation = true;
+              } else if (saved[id]) {
+                td.classList.add("reserved");
+                rowHasReservation = true;
+              }
             }
 
             tr.appendChild(td);
           });
 
-          // Si alguna celda de esta franja está reservada, coloreamos toda la fila
+          // Si alguna celda de esta franja está reservada/bloqueada, coloreamos toda la fila
           if (rowHasReservation) {
             tr.classList.add("row-has-reservation");
           }
@@ -732,6 +786,8 @@
         alert("Esta franja horaria está reservada de forma fija en el horario y no se puede modificar.");
         return;
       }
+
+      // Las franjas global-blocked nunca son .reservable, así que no llegan aquí
 
       const { date, slot, class: className } = cell.dataset;
       const id = buildReservationId(date, slot, className);
@@ -770,7 +826,7 @@
           return;
         }
 
-        // 2) Comprobar si la franja ya está ocupada por otra clase o por una reserva fija
+        // 2) Comprobar si la franja ya está ocupada por otra clase o por una reserva fija/bloqueada
         const existing = getExistingReservationForSlot(date, slot);
         if (existing) {
           const reservedClass = existing.className || "otra clase";
