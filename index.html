@@ -91,11 +91,11 @@
 
     .table-container {
       max-width: 100%;
-      overflow: auto;
+      overflow: auto;         /* Scroll horizontal y vertical aquí */
       border: 1px solid #ccc;
       background: white;
       border-radius: 4px;
-      max-height: 80vh; /* para poder centrar el día actual */
+      max-height: 80vh;       /* para poder centrar el día actual */
     }
 
     table {
@@ -106,22 +106,7 @@
       table-layout: fixed;
     }
 
-    thead {
-      background: #e1e9f2;
-    }
-
-    thead th {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      background: #dde3ff;
-      border: 1px solid #ccc;
-      padding: 4px 6px;
-      text-align: center;
-      white-space: normal;
-      word-break: break-word;
-    }
-
+    /* Bordes y fondo por defecto de TODAS las celdas */
     th,
     td {
       border: 1px solid #ccc;
@@ -132,6 +117,19 @@
       background: #ffffff; /* Libre en blanco por defecto */
     }
 
+    thead {
+      background: #e1e9f2;
+    }
+
+    /* Cabecera fija arriba (todas las columnas) */
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #dde3ff;  /* Color distinto para la cabecera */
+    }
+
+    /* Ancho fijo para columnas Fecha y Sesión */
     thead th:nth-child(1),
     tbody td:nth-child(1) {
       width: var(--col-date-width);
@@ -146,31 +144,34 @@
       max-width: var(--col-session-width);
     }
 
+    /* Primera columna (Fecha) fija a la izquierda */
     thead th:nth-child(1) {
       position: sticky;
       left: 0;
-      z-index: 11;
+      z-index: 20;          /* más alto para superponerse bien */
       background: #dde3ff;
     }
 
+    /* Segunda columna (Sesión) fija a la izquierda detrás de la de Fecha */
     thead th:nth-child(2) {
       position: sticky;
       left: var(--col-date-width);
-      z-index: 11;
+      z-index: 20;
       background: #dde3ff;
     }
 
+    /* Celdas de cuerpo: Fecha y Sesión fijas a la izquierda al hacer scroll horizontal */
     tbody td:nth-child(1) {
       position: sticky;
       left: 0;
-      z-index: 11;
+      z-index: 15;
       background: #fff;
     }
 
     tbody td:nth-child(2) {
       position: sticky;
       left: var(--col-date-width);
-      z-index: 11;
+      z-index: 15;
       background: #fff;
     }
 
