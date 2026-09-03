@@ -263,7 +263,7 @@
   <!-- Barra superior fija -->
   <div class="top-bar">
     <header>
-      <h1>RESERVA DE BIBLIOTECA</h1>
+      <h1>RESERVA DE BIBLIOTECA · CURSO 2026–2027</h1>
     </header>
 
     <div class="controls">
@@ -294,7 +294,7 @@
       * Las reservas pueden cambiarse o cancelarse durante un máximo de 2 minutos desde el momento en que se realizan.
     </p>
     <p class="info">
-      
+
     </p>
   </main>
 
@@ -329,14 +329,16 @@
     const db  = getFirestore(app);
 
     const months = [
-      { year: 2025, month: 11, name: "Noviembre 2025" },
-      { year: 2025, month: 12, name: "Diciembre 2025" },
-      { year: 2026, month: 1, name: "Enero 2026" },
-      { year: 2026, month: 2, name: "Febrero 2026" },
-      { year: 2026, month: 3, name: "Marzo 2026" },
-      { year: 2026, month: 4, name: "Abril 2026" },
-      { year: 2026, month: 5, name: "Mayo 2026" },
-      { year: 2026, month: 6, name: "Junio 2026" }
+      { year: 2026, month: 9, name: "Septiembre 2026" },
+      { year: 2026, month: 10, name: "Octubre 2026" },
+      { year: 2026, month: 11, name: "Noviembre 2026" },
+      { year: 2026, month: 12, name: "Diciembre 2026" },
+      { year: 2027, month: 1, name: "Enero 2027" },
+      { year: 2027, month: 2, name: "Febrero 2027" },
+      { year: 2027, month: 3, name: "Marzo 2027" },
+      { year: 2027, month: 4, name: "Abril 2027" },
+      { year: 2027, month: 5, name: "Mayo 2027" },
+      { year: 2027, month: 6, name: "Junio 2027" }
     ];
 
     const classes = [
@@ -354,7 +356,7 @@
       "6ºB"
     ];
 
-    // Horarios normales (nov–may)
+    // Horarios normales (septiembre–mayo)
     const defaultSlots = [
       "9:00-9:45",   // 1ª
       "9:45-10:30",  // 2ª
@@ -364,7 +366,7 @@
       "13:15-14:00"  // 6ª
     ];
 
-    // Horarios especiales para JUNIO 2026 (solo 5 sesiones)
+    // Horarios especiales para JUNIO 2027 (solo 5 sesiones)
     const juneSlots = [
       "9:00-9:40",
       "9:40-10:20",
@@ -375,7 +377,7 @@
 
     function getSlotsForMonth(monthIndex) {
       const { year, month } = months[monthIndex];
-      if (year === 2026 && month === 6) {
+      if (year === 2027 && month === 6) {
         // En junio solo hay 5 sesiones, así que las reservas de la 6ª hora
         // del horario fijo se ignoran automáticamente.
         return juneSlots;
@@ -383,37 +385,13 @@
       return defaultSlots;
     }
 
-    /* === RESERVAS FIJAS BIBLIOTECA (por clase) ===
-       jueves:  2ª 4ºA, 6ª Infantil 5 años
-       viernes: 2ª 4ºB, 6ª 6ºA
-       weekday: 1=Lunes ... 5=Viernes
-       session: 1=1ª, 2=2ª,... 6=6ª
+    /* === RESERVAS FIJAS BIBLIOTECA ===
+       Curso 2026–2027: todavía no hay ninguna franja asignada de forma fija.
     */
-    const FIXED_WEEKLY_RESERVATIONS = [
-      { weekday: 4, session: 2, className: "4ºA" },
-      { weekday: 4, session: 6, className: "Infantil 5 años" },
-      { weekday: 5, session: 2, className: "4ºB" },
-      { weekday: 5, session: 6, className: "6ºA" }
-    ];
+    const FIXED_WEEKLY_RESERVATIONS = [];
 
-    // Franjas bloqueadas globalmente (martes 2ª, 3ª, 6ª)
-    // Devuelve null si no está bloqueada, o el texto ("Préstamos"/"No disponible")
+    // Curso 2026–2027: de momento no hay franjas bloqueadas globalmente.
     function getGlobalBlockedLabel(dateIso, slot) {
-      const d = new Date(dateIso);
-      const weekday = d.getDay(); // 0 Dom, 1 Lun,... 6 Sab
-      if (weekday !== 2) return null; // Solo martes
-
-      const slotsForMonth = getSlotsForMonth(currentMonthIndex);
-      const idx = slotsForMonth.indexOf(slot);
-      if (idx === -1) return null;
-      const session = idx + 1;
-
-      if (session === 2 || session === 6) {
-        return "Préstamo";
-      }
-      if (session === 3) {
-        return "No disponible";
-      }
       return null;
     }
 
